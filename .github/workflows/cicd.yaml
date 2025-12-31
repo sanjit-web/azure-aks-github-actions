@@ -1,0 +1,35 @@
+name: Build and Deploy to AKS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Build and Push Image to ACR
+      run: |
+        az acr login --name devopsacr12345
+        docker build -t devopsacr12345.azurecr.io/webapp:latest .
+        docker push devopsacr12345.azurecr.io/webapp:latest
+
+    - name: Set AKS Context
+      uses: azure/aks-set-context@v3
+      with:
+        resource-group: devops-rg
+        cluster-name: devops-aks
+
+    - name: Deploy to AKS
+      run: |
+        kubectl apply -f k8s/
